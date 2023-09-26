@@ -2,7 +2,7 @@
 
 # Apply database migrations
 echo "Applying database migrations..."
-py manage.py migrate
+python manage.py migrate
 
 #Starting an app
 echo "Starting Django application..."
