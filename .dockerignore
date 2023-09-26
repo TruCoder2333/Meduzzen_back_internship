@@ -1,0 +1,43 @@
+# Ignore common version control files and directories
+.git
+.gitignore
+
+# Ignore compiled Python files and directories
+*.pyc
+__pycache__
+
+# Ignore development and local configuration files
+*.pyc
+*.pyo
+*.pyd
+*.pyi
+*.pyc
+*.pyo
+*.pyz
+*.pyw
+*.swp
+*.bak
+*.orig
+*.rej
+*.~*.orig
+*.~*.rej
+*.bak
+
+# Ignore system and temporary files
+.DS_Store
+Thumbs.db
+
+# Ignore virtual environment
+venv/
+
+# Ignore Docker-related files
+Dockerfile
+.dockerignore
+
+# Ignore database files
+db.sqlite3
+*.sqlite3
+
+# Ignore log and cache files
+*.log
+*.cache
