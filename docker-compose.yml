@@ -1,5 +1,9 @@
 version: '3'
 
+networks:
+  regular_network:
+    driver: bridge
+
 services:
   db:
     image: postgres
@@ -7,6 +11,8 @@ services:
       POSTGRES_DB: mydatabase
       POSTGRES_USER: mydatabaseuser
       POSTGRES_PASSWORD: mypassword
+    networks:
+      - regular_network
     ports:
       - "5432:5432"
     volumes:
@@ -14,12 +20,16 @@ services:
 
   redis:
     image: redis
+    networks:
+      - regular_network
     ports:
       - "6379:6379"
     
   django_app:
     image: my_app:latest  
     command: python manage.py runserver 0.0.0.0:8000  
+    networks:
+      - regular_network
     volumes:
       - D:\meduzzen_back\medzzen_back:/app 
     ports:
