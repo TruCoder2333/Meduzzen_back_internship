@@ -31,7 +31,7 @@ services:
     networks:
       - regular_network
     volumes:
-      - D:\meduzzen_back\medzzen_back:/app 
+      - /Users/kyrylo/meduzzen_back/medzzen_back:/app 
     ports:
       - "8000:8000"  
     depends_on:
