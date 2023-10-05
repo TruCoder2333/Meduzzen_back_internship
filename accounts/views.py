@@ -23,7 +23,7 @@ class UserViewSet(viewsets.ModelViewSet):
             queryset = self.filter_queryset(self.get_queryset())
             page = self.paginate_queryset(queryset)
 
-            if page is not None:
+            if page:
                 serializer = self.get_serializer(page, many=True)
                 return self.get_paginated_response(serializer.data)
             
@@ -53,10 +53,6 @@ class UserViewSet(viewsets.ModelViewSet):
                 log_message = f'New user created: {instance.username}'
                 log_to_logger('INFO', log_message)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-            else:
-                log_message = f'Failed to create user. Validation errors: {serializer.errors}'
-                log_to_logger('ERROR', log_message)
-                return Response({'error': 'Failed to create user. Validation errors.'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             log_message = f'Failed to create user. Error: {str(e)}'
             log_to_logger('ERROR', log_message)
@@ -68,13 +64,9 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(instance, data=request.data)
             if serializer.is_valid():
                 self.perform_update(serializer)
-                action = f'User updated: {instance.username}'
-                log_to_logger(instance.id, action)
+                log_message = f'User updated: {instance.username}'
+                log_to_logger('INFO', log_message)
                 return Response(serializer.data)
-            else:
-                action = f'Failed to update user. Errors: {serializer.errors}'
-                log_to_logger(None, log_message)
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             log_message = f'Failed to update user. Error: {str(e)}'
             log_to_logger('ERROR', log_message)

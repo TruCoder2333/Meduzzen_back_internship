@@ -1,9 +1,7 @@
 from log_app.serializers import LoggerSerializer
 
-def log_to_logger(user, action):
-    log_data = {'user': user, 'action': action}
+def log_to_logger(level, message):
+    log_data = {'level': level, 'message': message}
     log_serializer = LoggerSerializer(data=log_data)
-    if log_serializer.is_valid():
-        log_serializer.save()
-    else:
-        pass
+    log_serializer.save()
+    
