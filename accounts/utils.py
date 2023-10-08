@@ -3,5 +3,9 @@ from log_app.serializers import LoggerSerializer
 def log_to_logger(level, message):
     log_data = {'level': level, 'message': message}
     log_serializer = LoggerSerializer(data=log_data)
-    log_serializer.save()
+    if log_serializer.is_valid():
+        log_serializer.save()
+    else:
+        return Response({'error': 'Failed to create user.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
     
