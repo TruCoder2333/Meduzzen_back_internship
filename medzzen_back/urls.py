@@ -18,13 +18,21 @@ from django.contrib import admin
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from accounts.views import UserViewSet
+from djoser import views as djoser_views
+
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
 
 
 urlpatterns = [
+    path('auth/token/create/', djoser_views.TokenCreateView.as_view(), name='token-create'),
+    path('auth/token/destroy/', djoser_views.TokenDestroyView.as_view(), name='token-destroy'),
     path('', include('health_check.urls')),
     path('admin/', admin.site.urls),
     path('', include(router.urls)),
-]
+    path('auth/register/', UserViewSet.as_view({'post': 'create'}), name='user-create'),
+    path('auth/password/reset/', UserViewSet.as_view({'post': 'password_reset'}), name='password-reset'),
+    path('auth/password/reset/confirm/<str:uidb64>/<str:token>/', UserViewSet.as_view({'post': 'password_reset_confirm'}), name='password-reset-confirm'),
+    
+]   
