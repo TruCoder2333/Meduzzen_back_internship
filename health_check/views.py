@@ -1,5 +1,6 @@
-from django.shortcuts import render
 from django.http import JsonResponse
+from django.shortcuts import render
+
 
 def health_check(request):
     response_data = {

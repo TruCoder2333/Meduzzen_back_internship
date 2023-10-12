@@ -1,19 +1,21 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import status, viewsets
-from rest_framework.pagination import PageNumberPagination
-from accounts.models import CustomUser
-from accounts.serializers import UserSerializer
 from rest_framework.exceptions import NotFound
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from accounts.models import CustomUser
+from accounts.permissions import NoAuthenticationNeeded
+from accounts.serializers import UserSerializer
+from accounts.utils import log_to_logger
 from log_app.models import Logger
 from log_app.serializers import LoggerSerializer
-from accounts.utils import log_to_logger
-from accounts.permissions import NoAuthenticationNeeded
-from django.core.mail import send_mail
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes, force_str
-from django.urls import reverse
-from django.contrib.auth.tokens import default_token_generator
+
 
 class UserPagination(PageNumberPagination):
     page_size = 1
@@ -104,7 +106,7 @@ class UserViewSet(viewsets.ModelViewSet):
         #Sending reset email
         reset_email_subject = 'Reset Your Password'
         reset_email_body = f'Please follow this link to reset your password: {reset_url}'
-        send_mail(reset_email_subject, reset_email_body, 'from@example.com', [email])
+        send_mail(reset_email_subject, reset_email_body, 'bondkyrylo@gmail.com', [email])
 
         return Response({'message': 'Password reset email sent successfully.'}, status=status.HTTP_200_OK)
 

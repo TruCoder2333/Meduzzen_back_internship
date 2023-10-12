@@ -1,5 +1,7 @@
 from rest_framework import serializers
+
 from accounts.models import CustomUser
+
 
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(max_length=100, required=True)

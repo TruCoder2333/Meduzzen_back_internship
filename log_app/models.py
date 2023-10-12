@@ -1,6 +1,7 @@
-from django.db import models
-from core.models import TimeStampedModel
 from django.conf import settings
+from django.db import models
+
+from core.models import TimeStampedModel
 
 User = settings.AUTH_USER_MODEL
 class Logger(TimeStampedModel):
