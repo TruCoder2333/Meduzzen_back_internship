@@ -3,4 +3,23 @@ line-length = 120
 select = [
     'YTT',
     'I',
+    'E',
+    'F',
+]
+exclude = [
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    "bin",
+    "include",
+    "lib",
+    "Dockerfile."
 ]

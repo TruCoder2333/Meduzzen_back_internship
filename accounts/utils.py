@@ -1,3 +1,5 @@
+from rest_framework import response, status
+
 from log_app.serializers import LoggerSerializer
 
 
@@ -7,6 +9,6 @@ def log_to_logger(level, message):
     if log_serializer.is_valid():
         log_serializer.save()
     else:
-        return Response({'error': 'Failed to create user.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return response.Response({'error': 'Failed to create user.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     

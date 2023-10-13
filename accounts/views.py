@@ -7,14 +7,11 @@ from rest_framework import status, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from accounts.models import CustomUser
 from accounts.permissions import NoAuthenticationNeeded
 from accounts.serializers import UserSerializer
 from accounts.utils import log_to_logger
-from log_app.models import Logger
-from log_app.serializers import LoggerSerializer
 
 
 class UserPagination(PageNumberPagination):
@@ -85,7 +82,8 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Failed to update user.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get_permissions(self):
-        return [permission() for permission in self.permission_classes_by_action.get(self.action, self.permission_classes)]
+        return [permission() for permission in self.permission_classes_by_action.get(self.action, 
+                                                                                     self.permission_classes)]
 
     def password_reset(self, request, *args, **kwargs):
         email = request.data.get('email')
