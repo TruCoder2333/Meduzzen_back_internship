@@ -27,11 +27,14 @@ jobs:
       - name: Set up environment
         run: echo "${{ secrets.ENV_FILE }}" > .env
 
-      - name: Linting
-        run: docker-compose exec django_app ruff check ./ --fix
+      - name: Build Docker image
+        run: docker build -t your_app .
 
       - name: Build and run Docker containers
         run: docker-compose up --build -d
+
+      - name: Linting
+        run: docker-compose exec django_app ruff check ./ --fix
 
       - name: Run migrations
         run: docker-compose exec django_app python manage.py migrate
