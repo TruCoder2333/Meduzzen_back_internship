@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Enable debug logging
+        run: echo "::set-env name=ACTIONS_STEP_DEBUG::true"
+
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -30,9 +33,6 @@ jobs:
 
       - name: Build and run Docker containers
         run: docker-compose up --build -d
-
-      - name: Run migrations
-        run: docker-compose exec django_app python manage.py migrate
 
       - name: Run tests
         run: docker-compose exec django_app python manage.py test
