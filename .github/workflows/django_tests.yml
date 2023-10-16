@@ -10,9 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Enable debug logging
-        run: echo "::set-env name=ACTIONS_STEP_DEBUG::true"
-
       - name: Checkout code
         uses: actions/checkout@v2
 
