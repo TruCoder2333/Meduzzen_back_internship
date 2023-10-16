@@ -22,5 +22,5 @@ exclude = [
     "include",
     "lib",
     "Dockerfile.",
-    "migrations"
+    "migrations",
 ]

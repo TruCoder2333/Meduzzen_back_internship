@@ -16,31 +16,20 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-qemu-action@v1
 
-      - name: Cache dependencies
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Set up environment
-        run: echo "${{ secrets.ENV_FILE }}" > .env
-
       - name: Set up ruff
         run: pip install ruff
 
       - name: Linting
         run: ruff check ./ --fix
 
+      - name: Set up environment
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+
       - name: Build Docker image
         run: docker build -t my_app .
 
       - name: Build and run Docker containers
         run: docker-compose up --build -d
-
-      - name: Make migrations
-        run: docker-compose exec django_app python manage.py makemigrations
 
       - name: Run migrations
         run: docker-compose exec django_app python manage.py migrate
