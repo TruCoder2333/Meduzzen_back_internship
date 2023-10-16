@@ -33,7 +33,8 @@ class CustomUserViewSetTest(APITestCase):
         
 
     def test_update(self):
-        data = {'username': 'Boris'}
+        data = {'username': 'Boris',
+                'password': 'Test123'}
 
         response = self.client.put(f'/users/{self.user.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
