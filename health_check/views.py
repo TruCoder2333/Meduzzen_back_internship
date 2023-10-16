@@ -1,5 +1,5 @@
-from django.shortcuts import render
 from django.http import JsonResponse
+
 
 def health_check(request):
     response_data = {

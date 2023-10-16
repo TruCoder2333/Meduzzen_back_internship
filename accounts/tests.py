@@ -1,10 +1,9 @@
-from django.test import TestCase, Client
-from accounts.serializers import UserSerializer
-from rest_framework.test import APITestCase
-from rest_framework import status, HTTP_HEADER_ENCODING
-from accounts.models import CustomUser
+from rest_framework import status
 from rest_framework.authtoken.models import Token
-from django.urls import reverse
+from rest_framework.test import APITestCase
+
+from accounts.models import CustomUser
+
 
 class CustomUserViewSetTest(APITestCase):
     def setUp(self):
