@@ -3,7 +3,7 @@ name: Django Tests
 on:
   push:
     branches:
-      - BE-1-init_application
+      - '*'
 
 jobs:
   test:
@@ -41,3 +41,4 @@ jobs:
 
       - name: Stop and remove Docker containers
         run: docker-compose down
+  
