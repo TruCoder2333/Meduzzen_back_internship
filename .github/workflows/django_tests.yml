@@ -36,7 +36,7 @@ jobs:
         run: docker-compose run django_app python manage.py migrate
 
       - name: Run tests
-        run: docker-compose exec django_app python manage.py test
+        run: docker-compose run django_app python manage.py test
 
       - name: Stop and remove Docker containers
         run: docker-compose down
