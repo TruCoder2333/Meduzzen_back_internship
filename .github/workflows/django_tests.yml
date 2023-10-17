@@ -1,0 +1,51 @@
+name: Django Tests
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker
+        uses: docker/setup-qemu-action@v1
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Set up ruff
+        run: pip install ruff
+
+      - name: Linting
+        run: ruff check ./ --fix
+
+      - name: Set up environment
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+
+      - name: Build Docker image
+        run: docker build -t my_app .
+
+      - name: Build and run Docker containers
+        run: docker-compose up --build -d
+
+      - name: Run migrations
+        run: docker-compose run django_app python manage.py migrate
+
+      - name: Run tests
+        run: docker-compose run django_app python manage.py test
+
+      - name: Stop and remove Docker containers
+        run: docker-compose down
+  
