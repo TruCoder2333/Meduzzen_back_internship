@@ -17,8 +17,12 @@ class CompanyViewSetTest(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
 
     def test_list(self):
+        Company.objects.create(name='Company 1', description='Desc 1', owner=self.user, is_visible=True)
+        Company.objects.create(name='Company 2', description='Desc 2', owner=self.user, is_visible=False)
+
         response = self.client.get('/company/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
 
     def test_create(self):
         data = {
@@ -40,6 +44,9 @@ class CompanyViewSetTest(APITestCase):
 
         response = self.client.put(f'/company/{company.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], updated_data['name'])
+        self.assertEqual(response.data['description'], updated_data['description'])
+        self.assertEqual(response.data['is_visible'], updated_data['is_visible'])
 
     def test_delete(self):
         company = Company.objects.create(name='Company 6', description='Desc 6', owner=self.user, is_visible=True)
