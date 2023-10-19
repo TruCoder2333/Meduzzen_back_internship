@@ -1,11 +1,10 @@
 from django.shortcuts import render
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from companies.models import Company
 from companies.serializers import CompanySerializer
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-
 
 class CompanyPagination(PageNumberPagination):
     page_size = 2
@@ -26,7 +25,8 @@ class CompanyViewSet(viewsets.ModelViewSet):
                 company.delete()
                 return Response({'message': 'Company deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
             else:
-                return Response({'error': 'You do not have permission to delete this company.'}, status=status.HTTP_403_FORBIDDEN)
+                return Response({'error': 'You do not have permission to delete this company.'}, 
+                status=status.HTTP_403_FORBIDDEN)
         except Company.DoesNotExist:
             return Response({'error': 'Company not found.'}, status=status.HTTP_404_NOT_FOUND)
     
