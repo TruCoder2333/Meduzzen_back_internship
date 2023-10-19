@@ -21,9 +21,11 @@ from rest_framework.routers import DefaultRouter
 
 from accounts.views import UserViewSet
 
+from companies.views import CompanyViewSet
+
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
-
+router.register(r'company', CompanyViewSet)
 
 urlpatterns = [
     path('auth/token/create/', djoser_views.TokenCreateView.as_view(), name='token-create'),
@@ -35,5 +37,4 @@ urlpatterns = [
     path('auth/password/reset/', UserViewSet.as_view({'post': 'password_reset'}), name='password-reset'),
     path('auth/password/reset/confirm/<str:uidb64>/<str:token>/', 
         UserViewSet.as_view({'post': 'password_reset_confirm'}), name='password-reset-confirm'),
-    
 ]   
