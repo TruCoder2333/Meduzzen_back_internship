@@ -12,7 +12,7 @@ class CompanyPagination(PageNumberPagination):
 
 class CompanyViewSet(viewsets.ModelViewSet):
     serializer_class = CompanySerializer
-    queryset = Company.objects.all()
+    queryset = Company.objects.prefetch_related('owner').all()
     permission_classes = [IsAuthenticated]
     pagination_class = CompanyPagination
 
