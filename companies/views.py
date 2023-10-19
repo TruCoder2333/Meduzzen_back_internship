@@ -1,10 +1,11 @@
 from django.shortcuts import render
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.permissions import IsAuthenticated
 from companies.models import Company
 from companies.serializers import CompanySerializer
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 class CompanyPagination(PageNumberPagination):
     page_size = 2
