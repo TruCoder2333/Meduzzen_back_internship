@@ -33,7 +33,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         try:
             queryset = self.filter_queryset(self.get_queryset())
-            page = self.paginate_queryset(queryset)
+            page = self.paginate_queryset(queryset.filter(is_visible=True))
 
             if page:
                 serializer = self.get_serializer(page, many=True)
@@ -50,3 +50,11 @@ class CompanyViewSet(viewsets.ModelViewSet):
         if self.action == 'retrieve':
             return CompanySerializer
         return self.serializer_class
+
+    def toggle_visibility(self, request, pk=None):
+        company = self.get_object()
+        if company.owner == request.user:
+            company.is_visible = not company.is_visible
+            company.save()
+            return Response({'message': 'Visibility toggled successfully.'})
+        return Response({'error': 'You are not the owner of this company.'}, status=status.HTTP_403_FORBIDDEN)
