@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'log_app',
     'accounts',
     'djoser',
+    'companies',
+    'corsheaders',
 ]
 
 REST_FRAMEWORK = {
@@ -66,6 +68,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'medzzen_back.urls'
@@ -163,6 +166,8 @@ DJOSER = {
     'USER_CREATE_PASSWORD_RETYPE': True,
     'PASSWORD_RESET_CONFIRM_URL': '/password/reset/confirm/{uid}/{token}',
 }
+
+CORS_ORIGIN_ALLOW_ALL = True 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS')
