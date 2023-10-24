@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'djoser',
     'companies',
     'corsheaders',
+    'invitations',
 ]
 
 REST_FRAMEWORK = {
