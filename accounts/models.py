@@ -5,5 +5,10 @@ from django.db import models
 
 
 class CustomUser(AbstractUser, TimeStampedModel):
-   companies = models.ManyToManyField('companies.Company', related_name='companies_member', related_query_name='company_member',  blank=True)
+   companies = models.ManyToManyField(
+      'companies.Company', 
+      related_name='companies_member', 
+      related_query_name='company_member', 
+      blank=True
+      )
 

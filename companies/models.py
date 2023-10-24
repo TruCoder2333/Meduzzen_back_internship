@@ -8,7 +8,12 @@ class Company(TimeStampedModel):
     name = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     is_visible = models.BooleanField(default=True)
-    members = models.ManyToManyField('accounts.CustomUser', related_name='members_company', related_query_name='member_company', blank=True)
+    members = models.ManyToManyField(
+        'accounts.CustomUser', 
+        related_name='members_company', 
+        related_query_name='member_company', 
+        blank=True
+        )
     
     def __str__(self):
         return self.name

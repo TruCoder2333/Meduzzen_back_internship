@@ -89,7 +89,11 @@ class CompanyViewSet(viewsets.ModelViewSet):
             invited_user_id = serializer.validated_data['invited_user_id']
             
             try:
-                invitation = CompanyInvitation.objects.get(company=company, invited_user=invited_user_id, status=CompanyInvitation.INVITED)
+                invitation = CompanyInvitation.objects.get(
+                    company=company, 
+                    invited_user=invited_user_id, 
+                    status=CompanyInvitation.INVITED
+                    )
                 invitation.status = CompanyInvitation.CANCELED
                 invitation.save()
             
@@ -136,7 +140,6 @@ class CompanyViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             company = self.get_object()
             req_user_id = serializer.validated_data['req_user_id']
-            req_user = CustomUser.objects.get(pk=req_user_id)
             try:
                 invitation = CompanyInvitation.objects.get(
                     company=company, 
