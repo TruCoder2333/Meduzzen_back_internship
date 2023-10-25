@@ -1,11 +1,11 @@
 from rest_framework import serializers
-from .models import CompanyInvitation
+from .models import CompanyInvitation, InvitationStatus
 
 class SendInvitationSerializer(serializers.Serializer):
     invited_user_id = serializers.IntegerField()
 
 class RespondToInvitationSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=CompanyInvitation.INVITATION_STATUS_CHOICES)
+    status = serializers.ChoiceField(choices=[(status.value, status.name) for status in InvitationStatus])
 
 class AcceptInvitationSerializer(serializers.Serializer):
     company_id = serializers.IntegerField()  

@@ -6,7 +6,7 @@ from companies.serializers import CompanySerializer
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from invitations.models import CompanyInvitation
+from invitations.models import CompanyInvitation, InvitationStatus
 from invitations.serializers import SendInvitationSerializer, RespondToInvitationSerializer, AcceptRequestSerializer, RemoveMemberSerializer
 from accounts.models import CustomUser
 from accounts.serializers import UserSerializer
@@ -17,7 +17,7 @@ class CompanyPagination(PageNumberPagination):
 class CompanyViewSet(viewsets.ModelViewSet):
     serializer_class = CompanySerializer
     queryset = Company.objects.prefetch_related('owner').all()
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     pagination_class = CompanyPagination
 
     def perform_create(self, serializer):
@@ -74,7 +74,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
             invited_user_id = serializer.validated_data['invited_user_id']
             invited_user = CustomUser.objects.get(pk=invited_user_id)
             
-            invitation = CompanyInvitation(company=company, invited_user=invited_user, status=CompanyInvitation.INVITED)
+            invitation = CompanyInvitation(company=company, invited_user=invited_user, status=InvitationStatus.INVITED)
             invitation.save()
             
             return Response({'message': 'Invitation sent successfully'}, status=status.HTTP_200_OK)
@@ -89,12 +89,12 @@ class CompanyViewSet(viewsets.ModelViewSet):
             invited_user_id = serializer.validated_data['invited_user_id']
             
             try:
-                invitation = CompanyInvitation.objects.get(
+                invitation = CompanyInvitation.objects.prefetch_related('company', 'invited_user').get(
                     company=company, 
                     invited_user=invited_user_id, 
-                    status=CompanyInvitation.INVITED
+                    status=InvitationStatus.INVITED
                     )
-                invitation.status = CompanyInvitation.CANCELED
+                invitation.status = InvitationStatus.CANCELED
                 invitation.save()
             
                 return Response({'message': 'Invitation revoked successfully'}, status=status.HTTP_200_OK)
@@ -106,7 +106,10 @@ class CompanyViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def list_invitations(self, request, pk=None):
         company = self.get_object()
-        invitations = CompanyInvitation.objects.filter(company=company, status=CompanyInvitation.INVITED)
+        invitations = CompanyInvitation.objects.prefetch_related('company', 'invited_user').filter(
+            company=company, 
+            status=InvitationStatus.INVITED
+            )
         serializer = SendInvitationSerializer(invitations, many=True)
         return Response(serializer.data)
   
@@ -118,12 +121,12 @@ class CompanyViewSet(viewsets.ModelViewSet):
             req_user_id = serializer.validated_data['req_user_id']
             req_user = CustomUser.objects.get(pk=req_user_id)
             try:
-                invitation = CompanyInvitation.objects.get(
+                invitation = CompanyInvitation.objects.prefetch_related('company', 'invited_user').get(
                     company=company, 
                     invited_user=req_user_id, 
-                    status=CompanyInvitation.REQUESTED
+                    status=InvitationStatus.REQUESTED
                     )
-                invitation.status = CompanyInvitation.ACCEPTED
+                invitation.status = InvitationStatus.ACCEPTED
                 invitation.save()
 
                 company.members.add(req_user)
@@ -141,12 +144,12 @@ class CompanyViewSet(viewsets.ModelViewSet):
             company = self.get_object()
             req_user_id = serializer.validated_data['req_user_id']
             try:
-                invitation = CompanyInvitation.objects.get(
+                invitation = CompanyInvitation.objects.prefetch_related('company', 'invited_user').get(
                     company=company, 
                     invited_user=req_user_id, 
-                    status=CompanyInvitation.REQUESTED
+                    status=InvitationStatus.REQUESTED
                     )
-                invitation.status = CompanyInvitation.REJECTED
+                invitation.status = InvitationStatus.REJECTED
                 invitation.save()
 
                 return Response({'message': 'Request rejected successfully'}, status=status.HTTP_200_OK)
@@ -158,7 +161,10 @@ class CompanyViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def list_requests(self, request, pk=None):
         company = self.get_object()
-        invitations = CompanyInvitation.objects.filter(company=company, status=CompanyInvitation.REQUESTED)
+        invitations = CompanyInvitation.objects.prefetch_related('company', 'invited_user').filter(
+            company=company, 
+            status=InvitationStatus.REQUESTED
+            )
         serializer = SendInvitationSerializer(invitations, many=True)
         return Response(serializer.data)
 

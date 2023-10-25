@@ -1,25 +1,20 @@
 from django.db import models
 from accounts.models import CustomUser
 from companies.models import Company
+from enum import Enum
 
-class CompanyInvitation(models.Model):
+
+class InvitationStatus(Enum):
     INVITED = 'invited'
     REQUESTED = 'requested'
     ACCEPTED = 'accepted'
     REJECTED = 'rejected'
     CANCELED = 'canceled'
-    
-    INVITATION_STATUS_CHOICES = (
-        (INVITED, 'invited'),
-        (REQUESTED, 'requested'),
-        (ACCEPTED, 'Accepted'),
-        (REJECTED, 'Rejected'),
-        (CANCELED, 'Canceled')
-    )
-    
+
+class CompanyInvitation(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     invited_user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    status = models.CharField(max_length=20, choices=INVITATION_STATUS_CHOICES)
+    status = models.CharField(choices=[(status.value, status.name) for status in InvitationStatus])
     
     def __str__(self):
         return f"Invitation from {self.company} to {self.invited_user}"

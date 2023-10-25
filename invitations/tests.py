@@ -3,7 +3,7 @@ from rest_framework import status
 from django.urls import reverse
 from accounts.models import CustomUser
 from companies.models import Company
-from invitations.models import CompanyInvitation
+from invitations.models import CompanyInvitation, InvitationStatus
 
 class InvitationsViewSetTest(APITestCase):
     def setUp(self):
@@ -22,7 +22,7 @@ class InvitationsViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(CompanyInvitation.objects.filter(
             invited_user=self.user1, 
-            status=CompanyInvitation.INVITED).exists()
+            status=InvitationStatus.INVITED).exists()
             )
     
     def test_accept_invitation(self):
@@ -33,7 +33,7 @@ class InvitationsViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(CompanyInvitation.objects.filter(
             invited_user=self.user1, 
-            status=CompanyInvitation.INVITED).exists()
+            status=InvitationStatus.INVITED).exists()
             )
 
         url = f'/users/{self.user1.id}/accept_invitation/'
@@ -51,7 +51,7 @@ class InvitationsViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(CompanyInvitation.objects.filter(
             invited_user=self.user1, 
-            status=CompanyInvitation.INVITED).exists()
+            status=InvitationStatus.INVITED).exists()
             )
 
         url = f'/users/{self.user1.id}/decline_invitation/'
@@ -74,7 +74,7 @@ class InvitationsViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(CompanyInvitation.objects.filter(
             invited_user=self.user1, 
-            status=CompanyInvitation.INVITED).exists()
+            status=InvitationStatus.INVITED).exists()
             )
 
     def test_send_request(self):
@@ -85,7 +85,7 @@ class InvitationsViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(CompanyInvitation.objects.filter(
             invited_user=self.user1, 
-            status=CompanyInvitation.REQUESTED).exists()
+            status=InvitationStatus.REQUESTED).exists()
             )
 
     def test_revoke_request(self):
@@ -96,7 +96,7 @@ class InvitationsViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(CompanyInvitation.objects.filter(
             invited_user=self.user1, 
-            status=CompanyInvitation.REQUESTED).exists()
+            status=InvitationStatus.REQUESTED).exists()
             )
 
         url = f'/users/{self.user1.id}/revoke_request/'
@@ -106,7 +106,7 @@ class InvitationsViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(CompanyInvitation.objects.filter(
             invited_user=self.user1, 
-            status=CompanyInvitation.REQUESTED).exists()
+            status=InvitationStatus.REQUESTED).exists()
             )
 
 
@@ -118,7 +118,7 @@ class InvitationsViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(CompanyInvitation.objects.filter(
             invited_user=self.user1, 
-            status=CompanyInvitation.REQUESTED).exists()
+            status=InvitationStatus.REQUESTED).exists()
             )
 
         url = f'/company/{self.company.id}/accept_request/'
@@ -136,7 +136,7 @@ class InvitationsViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(CompanyInvitation.objects.filter(
             invited_user=self.user1, 
-            status=CompanyInvitation.REQUESTED).exists()
+            status=InvitationStatus.REQUESTED).exists()
             )
 
         url = f'/company/{self.company.id}/reject_request/'
@@ -146,7 +146,7 @@ class InvitationsViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(CompanyInvitation.objects.filter(
             invited_user=self.user1, 
-            status=CompanyInvitation.REQUESTED).exists()
+            status=InvitationStatus.REQUESTED).exists()
             )
 
     def test_remove_user(self):

@@ -14,7 +14,7 @@ from accounts.permissions import NoAuthenticationNeeded
 from accounts.serializers import UserSerializer
 from accounts.utils import log_to_logger
 from invitations.serializers import AcceptInvitationSerializer, SendRequestSerializer, LeaveCompanySerializer
-from invitations.models import CompanyInvitation
+from invitations.models import CompanyInvitation, InvitationStatus
 from companies.models import Company
 
 
@@ -142,13 +142,13 @@ class UserViewSet(viewsets.ModelViewSet):
             company_id = serializer.validated_data['company_id']
             
             try:
-                invitation = CompanyInvitation.objects.get(
+                invitation = CompanyInvitation.objects.prefetch_related('company', 'invited_user').get(
                     company=company_id, 
                     invited_user=invited_user, 
-                    status=CompanyInvitation.INVITED
+                    status=InvitationStatus.INVITED
                     )
                 company = invitation.company
-                invitation.status = CompanyInvitation.ACCEPTED
+                invitation.status = InvitationStatus.ACCEPTED
                 invitation.save()
 
                 company.members.add(invited_user)
@@ -166,12 +166,13 @@ class UserViewSet(viewsets.ModelViewSet):
             company_id = serializer.validated_data['company_id']
             
             try:
-                invitation = CompanyInvitation.objects.get(
+                invitation = CompanyInvitation.objects.prefetch_related('company', 'invited_user').get(
                     company=company_id, 
                     invited_user=invited_user, 
-                    status=CompanyInvitation.INVITED
+                    status=InvitationStatus.INVITED
                     )
-                invitation.status = CompanyInvitation.REJECTED
+                    
+                invitation.status = InvitationStatus.REJECTED
                 invitation.save()
                 return Response({'message': 'Invitation declined successfully'}, status=status.HTTP_200_OK)
             except CompanyInvitation.DoesNotExist:
@@ -190,7 +191,7 @@ class UserViewSet(viewsets.ModelViewSet):
             invitation = CompanyInvitation(
                 company=req_company, 
                 invited_user=invited_user, 
-                status=CompanyInvitation.REQUESTED
+                status=InvitationStatus.REQUESTED
                 )
             invitation.save()
             
@@ -205,12 +206,12 @@ class UserViewSet(viewsets.ModelViewSet):
             req_company_id = serializer.validated_data['req_company_id']
             req_company = Company.objects.get(pk=req_company_id)
             try:
-                invitation = CompanyInvitation.objects.get(
+                invitation = CompanyInvitation.objects.prefetch_related('company', 'invited_user').get(
                     company=req_company, 
                     invited_user=user, 
-                    status=CompanyInvitation.REQUESTED
+                    status=InvitationStatus.REQUESTED
                     )
-                invitation.status = CompanyInvitation.CANCELED
+                invitation.status = InvitationStatus.CANCELED
                 invitation.save()
                 return Response({'message': 'Invitation revoked successfully'}, status=status.HTTP_200_OK)
             except CompanyInvitation.DoesNotExist:
@@ -224,7 +225,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             user = self.get_object()  
             company_id = serializer.validated_data['company_id']
-            company = Company.objects.get(pk=company_id)
+            company = Company.objects.prefetch_related('members').get(pk=company_id)
             if company.members.filter(id=user.id).exists():
                 company.members.remove(user.id)
                 return Response({'message': 'Member left successfully'}, status=status.HTTP_200_OK)
@@ -235,14 +236,20 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def list_requests(self, request, pk=None):
         user = self.get_object()
-        invitations = CompanyInvitation.objects.filter(invited_user=user, status=CompanyInvitation.REQUESTED)
+        invitations = CompanyInvitation.objects.prefetch_related('company', 'invited_user').filter(
+            invited_user=user, 
+            status=CompanyInvitation.REQUESTED
+            )
         serializer = AcceptInvitationSerializer(invitations, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
     def list_invites(self, request, pk=None):
         user = self.get_object()
-        invitations = CompanyInvitation.objects.filter(invited_user=user, status=CompanyInvitation.INVITED)
+        invitations = CompanyInvitation.objects.prefetch_related('company', 'invited_user').filter(
+            invited_user=user, 
+            status=CompanyInvitation.INVITED
+            )
         serializer = AcceptInvitationSerializer(invitations, many=True)
         return Response(serializer.data)
     
