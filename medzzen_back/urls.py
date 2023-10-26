@@ -27,6 +27,7 @@ router = DefaultRouter()
 router.register(r'users', UserViewSet)
 router.register(r'company', CompanyViewSet)
 
+
 urlpatterns = [
     path('auth/token/create/', djoser_views.TokenCreateView.as_view(), name='token-create'),
     path('auth/token/destroy/', djoser_views.TokenDestroyView.as_view(), name='token-destroy'),

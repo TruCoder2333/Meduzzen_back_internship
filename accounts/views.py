@@ -7,15 +7,19 @@ from rest_framework import status, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 from accounts.models import CustomUser
 from accounts.permissions import NoAuthenticationNeeded
 from accounts.serializers import UserSerializer
 from accounts.utils import log_to_logger
+from invitations.serializers import AcceptInvitationSerializer, SendRequestSerializer, LeaveCompanySerializer
+from invitations.models import CompanyInvitation, InvitationStatus
+from companies.models import Company
 
 
 class UserPagination(PageNumberPagination):
-    page_size = 1
+    page_size = 5
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all().order_by('created_at')
@@ -129,3 +133,124 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
 
         return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def accept_invitation(self, request, pk=None):
+        serializer = AcceptInvitationSerializer(data=request.data)
+        if serializer.is_valid():
+            invited_user = self.request.user 
+            company_id = serializer.validated_data['company_id']
+            
+            try:
+                invitation = CompanyInvitation.objects.prefetch_related('company', 'invited_user').get(
+                    company=company_id, 
+                    invited_user=invited_user, 
+                    status=InvitationStatus.INVITED
+                    )
+                company = invitation.company
+                invitation.status = InvitationStatus.ACCEPTED
+                invitation.save()
+
+                company.members.add(invited_user)
+                return Response({'message': 'Invitation accepted successfully'}, status=status.HTTP_200_OK)
+            except CompanyInvitation.DoesNotExist:
+                return Response({'error': 'Invitation not found'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def decline_invitation(self, request, pk=None):
+        serializer = AcceptInvitationSerializer(data=request.data)
+        if serializer.is_valid():
+            invited_user = self.request.user  
+            company_id = serializer.validated_data['company_id']
+            
+            try:
+                invitation = CompanyInvitation.objects.prefetch_related('company', 'invited_user').get(
+                    company=company_id, 
+                    invited_user=invited_user, 
+                    status=InvitationStatus.INVITED
+                    )
+                    
+                invitation.status = InvitationStatus.REJECTED
+                invitation.save()
+                return Response({'message': 'Invitation declined successfully'}, status=status.HTTP_200_OK)
+            except CompanyInvitation.DoesNotExist:
+                return Response({'error': 'Invitation not found'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def send_request(self, request, pk=None):
+        serializer = SendRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            invited_user = self.request.user  
+            req_company_id = serializer.validated_data['req_company_id']
+            req_company = Company.objects.get(pk=req_company_id)
+            
+            invitation = CompanyInvitation(
+                company=req_company, 
+                invited_user=invited_user, 
+                status=InvitationStatus.REQUESTED
+                )
+            invitation.save()
+            
+            return Response({'message': 'Request sent successfully'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def revoke_request(self, request, pk=None):
+        serializer = SendRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            user = self.get_object()
+            req_company_id = serializer.validated_data['req_company_id']
+            req_company = Company.objects.get(pk=req_company_id)
+            try:
+                invitation = CompanyInvitation.objects.prefetch_related('company', 'invited_user').get(
+                    company=req_company, 
+                    invited_user=user, 
+                    status=InvitationStatus.REQUESTED
+                    )
+                invitation.status = InvitationStatus.CANCELED
+                invitation.save()
+                return Response({'message': 'Invitation revoked successfully'}, status=status.HTTP_200_OK)
+            except CompanyInvitation.DoesNotExist:
+                return Response({'error': 'Invitation not found'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def leave_company(self, request, pk=None):
+        serializer = LeaveCompanySerializer(data=request.data)
+        if serializer.is_valid():
+            user = self.get_object()  
+            company_id = serializer.validated_data['company_id']
+            company = Company.objects.prefetch_related('members').get(pk=company_id)
+            if company.members.filter(id=user.id).exists():
+                company.members.remove(user.id)
+                return Response({'message': 'Member left successfully'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'User is not a member of the company'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get'])
+    def list_requests(self, request, pk=None):
+        user = self.get_object()
+        invitations = CompanyInvitation.objects.prefetch_related('company', 'invited_user').filter(
+            invited_user=user, 
+            status=CompanyInvitation.REQUESTED
+            )
+        serializer = AcceptInvitationSerializer(invitations, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def list_invites(self, request, pk=None):
+        user = self.get_object()
+        invitations = CompanyInvitation.objects.prefetch_related('company', 'invited_user').filter(
+            invited_user=user, 
+            status=CompanyInvitation.INVITED
+            )
+        serializer = AcceptInvitationSerializer(invitations, many=True)
+        return Response(serializer.data)
+    
+    

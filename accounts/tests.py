@@ -7,7 +7,7 @@ from accounts.models import CustomUser
 
 class CustomUserViewSetTest(APITestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create(username = 'testuser')
+        self.user = CustomUser.objects.create(username = 'testuser', email = 'test@mail.com')
         self.user.set_password('Test123')
         self.user.save()
         
@@ -26,6 +26,7 @@ class CustomUserViewSetTest(APITestCase):
     def test_create(self):
         data = {
             'username': 'abobus',
+            'email'   : 'test2@maol.com',
             'password': 'abobus22',
         }
         response = self.client.post('/users/', data)
@@ -34,6 +35,7 @@ class CustomUserViewSetTest(APITestCase):
 
     def test_update(self):
         data = {'username': 'Boris',
+                'email'   : 'test3@maol.com',
                 'password': 'Test123'}
 
         response = self.client.put(f'/users/{self.user.id}/', data)
@@ -43,3 +45,4 @@ class CustomUserViewSetTest(APITestCase):
         response = self.client.delete(f'/users/{self.user.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         
+    
