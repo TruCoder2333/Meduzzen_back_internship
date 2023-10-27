@@ -1,4 +1,3 @@
-from django.test import TestCase
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
@@ -6,11 +5,13 @@ from rest_framework.test import APITestCase
 from accounts.models import CustomUser
 from companies.models import Company
 
+
 class CompanyViewSetTest(APITestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create(username = 'testuser')
-        self.user.set_password('Test123')
-        self.user.save()
+        self.user = CustomUser.objects.create(username = 'testuser', password="user_password")
+        self.user1 = CustomUser.objects.create(username="user1", password="user1_password")
+        self.user2 = CustomUser.objects.create(username="user2", password="user2_password")
+        
         
         self.token, created = Token.objects.get_or_create(user=self.user)
 
@@ -51,4 +52,33 @@ class CompanyViewSetTest(APITestCase):
         company = Company.objects.create(name='Company 6', description='Desc 6', owner=self.user, is_visible=True)
         response = self.client.delete(f'/company/{company.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_appoint_administrator(self):
+        company = Company.objects.create(name='Company 1', description='Desc 1', owner=self.user, is_visible=True)
+        company.members.add(self.user1)
+        url = f'/company/{company.id}/appoint_administrator/'
+        data = {'user_id': self.user1.id}
+        self.client.force_authenticate(self.user)
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertTrue(company.administrators.filter(id=self.user1.id).exists())
+
+    def test_remove_administrator(self):
+        company = Company.objects.create(name='Company 1', description='Desc 1', owner=self.user, is_visible=True)
+        company.members.add(self.user1)
+        url = f'/company/{company.id}/appoint_administrator/'
+        data = {'user_id': self.user1.id}
+        self.client.force_authenticate(self.user)
+        response = self.client.post(url, data, format='json')
+
+        url = f'/company/{company.id}/remove_administrator/'
+        data = {'user_id': self.user1.id}
+        self.client.force_authenticate(self.user)
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertFalse(company.administrators.filter(id=self.user1.id).exists())
+        
+
         

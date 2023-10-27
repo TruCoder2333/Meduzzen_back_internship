@@ -1,9 +1,10 @@
-from rest_framework.test import APITestCase
 from rest_framework import status
-from django.urls import reverse
+from rest_framework.test import APITestCase
+
 from accounts.models import CustomUser
 from companies.models import Company
 from invitations.models import CompanyInvitation, InvitationStatus
+
 
 class InvitationsViewSetTest(APITestCase):
     def setUp(self):

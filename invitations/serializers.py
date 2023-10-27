@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from .models import CompanyInvitation, InvitationStatus
+
+from .models import InvitationStatus
+
 
 class SendInvitationSerializer(serializers.Serializer):
     invited_user_id = serializers.IntegerField()

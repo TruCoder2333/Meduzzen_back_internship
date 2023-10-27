@@ -1,15 +1,20 @@
-from django.shortcuts import render
-from rest_framework import viewsets, status, permissions
-from rest_framework.permissions import IsAuthenticated
-from companies.models import Company
-from companies.serializers import CompanySerializer
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from rest_framework.decorators import action
-from invitations.models import CompanyInvitation, InvitationStatus
-from invitations.serializers import SendInvitationSerializer, RespondToInvitationSerializer, AcceptRequestSerializer, RemoveMemberSerializer
+
 from accounts.models import CustomUser
 from accounts.serializers import UserSerializer
+from companies.models import Company
+from companies.serializers import (
+    AdministratorSerializer,
+    AppointAdministratorSerializer,
+    CompanySerializer,
+    RemoveAdministratorSerializer,
+)
+from invitations.models import CompanyInvitation, InvitationStatus
+from invitations.serializers import AcceptRequestSerializer, RemoveMemberSerializer, SendInvitationSerializer
+
 
 class CompanyPagination(PageNumberPagination):
     page_size = 2
@@ -17,7 +22,6 @@ class CompanyPagination(PageNumberPagination):
 class CompanyViewSet(viewsets.ModelViewSet):
     serializer_class = CompanySerializer
     queryset = Company.objects.prefetch_related('owner').all()
-    permission_classes = [IsAuthenticated]
     pagination_class = CompanyPagination
 
     def perform_create(self, serializer):
@@ -189,3 +193,46 @@ class CompanyViewSet(viewsets.ModelViewSet):
         serializer = UserSerializer(members, many=True)  
         return Response(serializer.data)
     
+    @action(detail=True, methods=['post'])
+    def appoint_administrator(self, request, pk=None):
+        serializer = AppointAdministratorSerializer(data=request.data)
+        if serializer.is_valid():
+            company = self.get_object()
+            user_id = serializer.validated_data['user_id']
+
+            try:
+                user = CustomUser.objects.get(pk=user_id)
+                if user in company.members.all() and user != company.owner:
+                    company.administrators.add(user)
+                    return Response({'message': 'Administrator appointed successfully'}, status=status.HTTP_200_OK)
+                return Response({'error': 'Invalid user or action not allowed'}, status=status.HTTP_400_BAD_REQUEST)
+            except CustomUser.DoesNotExist:
+                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(detail=True, methods=['post'])
+    def remove_administrator(self, request, pk=None):
+        serializer = RemoveAdministratorSerializer(data=request.data)
+        if serializer.is_valid():
+            company = self.get_object()
+            user_id = serializer.validated_data['user_id']
+
+            try:
+                user = CustomUser.objects.get(pk=user_id)
+                if user in company.administrators.all():
+                    company.administrators.remove(user)
+                    return Response({'message': 'Administrator removed successfully'}, status=status.HTTP_200_OK)
+                return Response({'error': 'User is not an administrator'}, status=status.HTTP_400_BAD_REQUEST)
+            except CustomUser.DoesNotExist:
+                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get'])
+    def list_administrators(self, request, pk=None):
+        company = self.get_object()
+        administrators = company.administrators.all()
+        serializer = AdministratorSerializer(administrators, many=True)
+        return Response(serializer.data)

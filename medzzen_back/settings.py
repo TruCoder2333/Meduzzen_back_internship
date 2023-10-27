@@ -168,6 +168,12 @@ DJOSER = {
     'PASSWORD_RESET_CONFIRM_URL': '/password/reset/confirm/{uid}/{token}',
 }
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 CORS_ORIGIN_ALLOW_ALL = True 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

@@ -4,18 +4,20 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FormParser
+
 
 from accounts.models import CustomUser
 from accounts.permissions import NoAuthenticationNeeded
-from accounts.serializers import UserSerializer
+from accounts.serializers import UserSerializer, AvatarUploadSerializer
 from accounts.utils import log_to_logger
-from invitations.serializers import AcceptInvitationSerializer, SendRequestSerializer, LeaveCompanySerializer
-from invitations.models import CompanyInvitation, InvitationStatus
 from companies.models import Company
+from invitations.models import CompanyInvitation, InvitationStatus
+from invitations.serializers import AcceptInvitationSerializer, LeaveCompanySerializer, SendRequestSerializer
 
 
 class UserPagination(PageNumberPagination):
@@ -92,20 +94,16 @@ class UserViewSet(viewsets.ModelViewSet):
     def password_reset(self, request, *args, **kwargs):
         email = request.data.get('email')
         
-        #Does email exist?
         try:
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
             return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        #Generating reset token
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
-        #Building the reset URL
         reset_url = reverse('password-reset-confirm', kwargs={'uidb64': uid, 'token': token})
 
-        #Sending reset email
         reset_email_subject = 'Reset Your Password'
         reset_email_body = f'Please follow this link to reset your password: {reset_url}'
         send_mail(reset_email_subject, reset_email_body, 'bondkyrylo@gmail.com', [email])
@@ -117,7 +115,6 @@ class UserViewSet(viewsets.ModelViewSet):
         token = kwargs.get('token')
         password = request.data.get('password')
 
-        # Decode uid and get the user
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = CustomUser.objects.get(pk=uid)
@@ -252,5 +249,17 @@ class UserViewSet(viewsets.ModelViewSet):
             )
         serializer = AcceptInvitationSerializer(invitations, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    def upload_avatar(self, request, pk=None):
+        serializer = AvatarUploadSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = self.get_object()
+            user.avatar = serializer.validated_data['avatar']
+            user.save()
+            return Response({'message': 'Avatar uploaded successfully'}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
