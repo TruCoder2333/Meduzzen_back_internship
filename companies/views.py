@@ -201,7 +201,9 @@ class CompanyViewSet(viewsets.ModelViewSet):
             user_id = serializer.validated_data['user_id']
 
             try:
-                user = CustomUser.objects.get(pk=user_id)
+                user = CustomUser.objects.filter(pk=user_id).prefetch_related(
+                    'companies', 
+                    'administered_companies').first()
                 if user in company.members.all() and user != company.owner:
                     company.administrators.add(user)
                     return Response({'message': 'Administrator appointed successfully'}, status=status.HTTP_200_OK)
@@ -220,7 +222,9 @@ class CompanyViewSet(viewsets.ModelViewSet):
             user_id = serializer.validated_data['user_id']
 
             try:
-                user = CustomUser.objects.get(pk=user_id)
+                user = CustomUser.objects.filter(pk=user_id).prefetch_related(
+                    'companies', 
+                    'administered_companies').first()
                 if user in company.administrators.all():
                     company.administrators.remove(user)
                     return Response({'message': 'Administrator removed successfully'}, status=status.HTTP_200_OK)
