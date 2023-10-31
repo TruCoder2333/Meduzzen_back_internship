@@ -1,5 +1,7 @@
 from django.contrib import admin
+
 from .models import CompanyInvitation
+
 
 class CompanyInvitationAdmin(admin.ModelAdmin):
     list_display = ('company', 'invited_user', 'status')

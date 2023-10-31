@@ -20,7 +20,6 @@ from djoser import views as djoser_views
 from rest_framework.routers import DefaultRouter
 
 from accounts.views import UserViewSet
-
 from companies.views import CompanyViewSet
 
 router = DefaultRouter()

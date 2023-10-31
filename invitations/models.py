@@ -1,7 +1,9 @@
+from enum import Enum
+
 from django.db import models
+
 from accounts.models import CustomUser
 from companies.models import Company
-from enum import Enum
 
 
 class InvitationStatus(Enum):
