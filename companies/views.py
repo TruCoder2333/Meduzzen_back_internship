@@ -14,6 +14,8 @@ from companies.serializers import (
 )
 from invitations.models import CompanyInvitation, InvitationStatus
 from invitations.serializers import AcceptRequestSerializer, RemoveMemberSerializer, SendInvitationSerializer
+from quizzes.models import Quiz
+from quizzes.serializers import QuizSerializer
 
 
 class CompanyPagination(PageNumberPagination):
@@ -199,7 +201,6 @@ class CompanyViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             company = self.get_object()
             user_id = serializer.validated_data['user_id']
-
             try:
                 user = CustomUser.objects.filter(pk=user_id).prefetch_related(
                     'companies', 
@@ -239,4 +240,11 @@ class CompanyViewSet(viewsets.ModelViewSet):
         company = self.get_object()
         administrators = company.administrators.all()
         serializer = AdministratorSerializer(administrators, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='list-quizzes')
+    def list_quizzes(self, request, pk=None):
+        company = self.get_object()
+        quizzes = Quiz.objects.filter(company=company)
+        serializer = QuizSerializer(quizzes, many=True)
         return Response(serializer.data)

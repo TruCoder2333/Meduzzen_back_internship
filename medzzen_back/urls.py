@@ -21,10 +21,13 @@ from rest_framework.routers import DefaultRouter
 
 from accounts.views import UserViewSet
 from companies.views import CompanyViewSet
+from quizzes.views import QuizViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
 router.register(r'company', CompanyViewSet)
+router.register(r'quizzes', QuizViewSet)
+
 
 
 urlpatterns = [
