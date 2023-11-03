@@ -4,9 +4,15 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from .models import Answer, Question, Quiz
-from .permissions import IsCompanyOwnerOrAdministrator
-from .serializers import AnswerSerializer, QuestionSerializer, QuizSerializer
+from .models import Answer, Question, Quiz, QuizAttempt, QuizResult
+from .serializers import (
+    AnswerSerializer,
+    QuestionSerializer,
+    QuizAttemptSerializer,
+    QuizResultSerializer,
+    QuizSerializer,
+    UserAnswerSerializer,
+)
 
 
 class QuizPagination(PageNumberPagination):
@@ -16,11 +22,14 @@ class QuizPagination(PageNumberPagination):
 class QuizViewSet(ModelViewSet):
     queryset = Quiz.objects.prefetch_related('questions__answers').all()
     serializer_class = QuizSerializer
-    permission_classes = [IsCompanyOwnerOrAdministrator]        
+    #permission_classes = [IsCompanyOwnerOrAdministrator]        
     pagination_class = QuizPagination
 
     def perform_create(self, serializer):
-        quiz = serializer.save()
+        if serializer.is_valid:
+            quiz = serializer.save()
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         questions_data = self.request.data.get('questions', [])
         questions = []
@@ -67,7 +76,7 @@ class QuizViewSet(ModelViewSet):
         serializer = QuizSerializer(quiz)
         return Response(serializer.data)
         
-    @action(detail=True, methods=['post'], url_path='create-question')
+    @action(detail=True, methods=['post'])
     def create_question(self, request, pk=None):
         quiz = self.get_object()
         serializer = QuestionSerializer(data=request.data)
@@ -77,7 +86,7 @@ class QuizViewSet(ModelViewSet):
             return Response(QuestionSerializer(question).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'], url_path='create-answer')
+    @action(detail=True, methods=['post'])
     def create_answer(self, request, pk=None):
         self.get_object()
         serializer = AnswerSerializer(data=request.data)
@@ -87,4 +96,90 @@ class QuizViewSet(ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True, methods=['post'])
+    def start_attempt(self, request, pk=None):
+        quiz = self.get_object()
 
+        serializer = QuizAttemptSerializer(data={'user': request.user.id, 'quiz': quiz.id})
+        if serializer.is_valid():
+            quiz_attempt = serializer.save()
+
+            return Response({'quiz_attempt_id': quiz_attempt.id}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def submit_answers(self, request, pk=None):
+        quiz = self.get_object()
+
+        serializer = UserAnswerSerializer(data=request.data, many=True)
+        if serializer.is_valid():
+            user_answers = serializer.save(quiz_attempt=self.get_current_quiz_attempt(request, quiz))
+            total_score = 0
+
+            for user_answer in user_answers:
+                question = user_answer.question
+                chosen_answer = user_answer.chosen_answer
+                try:
+                    correct_answer = Answer.objects.get(question=question, is_correct=True)
+                except Answer.DoesNotExist:
+                    return Response({'error': 'Answer not found'}, status=status.HTTP_404_NOT_FOUND)
+
+                if chosen_answer == correct_answer:
+                    total_score += 1  
+
+            #quiz_result_data = {
+            #    'quiz': quiz.id,
+            #    'user': request.user.id,
+            #    'score': total_score,
+            #}
+
+            #quiz_result_serializer = QuizResultSerializer(data=quiz_result_data)
+
+            quiz_result = QuizResult(quiz=quiz, user=request.user, score=total_score)
+            quiz_result.save()
+            #if quiz_result_serializer.is_valid():
+            #    quiz_result_serializer.save()
+            #   return Response({'message': 'Answers submitted successfully'}, status=status.HTTP_201_CREATED)
+            #else:
+            #     return Response(quiz_result_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_current_quiz_attempt(self, request, quiz):
+        user = request.user  
+        try:
+            current_attempt = QuizAttempt.objects.get(user=user, quiz=quiz)
+            return current_attempt
+        except QuizAttempt.DoesNotExist:
+            new_attempt = QuizAttempt(user=user, quiz=quiz)
+            new_attempt.save()
+            return new_attempt
+
+    @action(detail=True, methods=['get'], url_path='user-score')
+    def get_user_score(self, request, pk=None):
+        quiz = self.get_object()
+
+        try:
+            quiz_result = QuizResult.objects.get(quiz=quiz, user=request.user)
+
+            # Serialize the quiz_result using QuizResultSerializer
+            quiz_result_data = QuizResultSerializer(quiz_result).data
+
+            # Serialize the quiz object using QuizSerializer
+            quiz_data = QuizSerializer(quiz).data
+
+            response_data = {
+                'quiz_title': quiz_data['title'],  # Assuming 'title' is the field to retrieve from the quiz
+                'user_score': quiz_result_data['score'],
+            }
+
+            return Response(response_data, status=status.HTTP_200_OK)
+        except QuizResult.DoesNotExist:
+            return Response({'Not found': quiz_result.title, 'user_score': None}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['get'])
+    def list_quiz_results(self, request, pk=None):
+        quiz = self.get_object()
+        quiz_results = QuizResult.objects.filter(quiz=quiz)
+        serializer = QuizResultSerializer(quiz_results, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -86,7 +86,7 @@ class QuizAPITestCase(APITestCase):
         quiz = Quiz.objects.filter(title="Sample Quiz").prefetch_related('questions__answers').first()
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        url = f'/quizzes/{quiz.id}/create-question/'  
+        url = f'/quizzes/{quiz.id}/create_question/'  
         data = {
             "text": "Test Question",
             "quiz": quiz.id,
@@ -107,7 +107,7 @@ class QuizAPITestCase(APITestCase):
         quiz = Quiz.objects.filter(title="Sample Quiz").prefetch_related('questions__answers').first()
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        url = f'/quizzes/{quiz.id}/create-question/'  
+        url = f'/quizzes/{quiz.id}/create_question/'  
         data = {
             "text": "Test Question",
             "quiz": quiz.id,
@@ -117,7 +117,7 @@ class QuizAPITestCase(APITestCase):
         question = quiz.questions.first()
         self.assertEqual(question.text, "Test Question")
 
-        url = f'/quizzes/{quiz.id}/create-answer/'  
+        url = f'/quizzes/{quiz.id}/create_answer/'  
         data = {
             "text": "Test Answer",
             "is_correct": True,
