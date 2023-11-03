@@ -7,13 +7,12 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
-
 
 from accounts.models import CustomUser
 from accounts.permissions import NoAuthenticationNeeded
-from accounts.serializers import UserSerializer, AvatarUploadSerializer
+from accounts.serializers import AvatarUploadSerializer, UserSerializer
 from accounts.utils import log_to_logger
 from companies.models import Company
 from invitations.models import CompanyInvitation, InvitationStatus

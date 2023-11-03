@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'companies',
     'corsheaders',
     'invitations',
+    'quizzes',
 ]
 
 REST_FRAMEWORK = {
