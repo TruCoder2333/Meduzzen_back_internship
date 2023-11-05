@@ -14,8 +14,8 @@ from companies.serializers import (
 )
 from invitations.models import CompanyInvitation, InvitationStatus
 from invitations.serializers import AcceptRequestSerializer, RemoveMemberSerializer, SendInvitationSerializer
-from quizzes.models import Quiz
-from quizzes.serializers import QuizSerializer
+from quizzes.models import Quiz, UserAnswer
+from quizzes.serializers import QuizResultSerializer, QuizSerializer
 
 
 class CompanyPagination(PageNumberPagination):
@@ -248,3 +248,42 @@ class CompanyViewSet(viewsets.ModelViewSet):
         quizzes = Quiz.objects.filter(company=company)
         serializer = QuizSerializer(quizzes, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='average_score')
+    def company_average_user_score(self, request, pk=None):
+        company = self.get_object() 
+
+        user_id = request.query_params.get('user_id', None)
+        if user_id is None:
+            return Response({'error': 'user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        company_with_results = Company.objects.prefetch_related(
+            'members__quizresult_set',  
+        ).get(id=company.id)
+
+        user = company_with_results.members.get(id=user_id)
+        quiz_results = user.quizresult_set.all()
+
+        total_correct_answers = UserAnswer.objects.filter(
+            quiz_attempt__user=user,
+            question__quiz__company=company,
+            chosen_answer__is_correct=True
+        ).count()
+
+        total_answers = UserAnswer.objects.filter(
+            quiz_attempt__user=user,
+            question__quiz__company=company
+        ).count()
+
+        average_score = total_correct_answers / total_answers if total_answers > 0 else 0
+
+        quiz_results_serializer = QuizResultSerializer(quiz_results, many=True)
+
+        response_data = {
+            'company_id': company.id,
+            'user_id': user_id,
+            'average_score': average_score,
+            'quiz_results': quiz_results_serializer.data,  
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)

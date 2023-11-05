@@ -1,10 +1,11 @@
+from django.db.models import Prefetch
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from .models import Answer, Question, Quiz, QuizAttempt, QuizResult
+from .models import Answer, Question, Quiz, QuizResult
 from .serializers import (
     AnswerSerializer,
     QuestionSerializer,
@@ -13,6 +14,7 @@ from .serializers import (
     QuizSerializer,
     UserAnswerSerializer,
 )
+from .utils import get_current_quiz_attempt
 
 
 class QuizPagination(PageNumberPagination):
@@ -113,63 +115,41 @@ class QuizViewSet(ModelViewSet):
 
         serializer = UserAnswerSerializer(data=request.data, many=True)
         if serializer.is_valid():
-            user_answers = serializer.save(quiz_attempt=self.get_current_quiz_attempt(request, quiz))
+            user_answers = serializer.save(quiz_attempt=get_current_quiz_attempt(request.user, quiz))
             total_score = 0
 
             for user_answer in user_answers:
                 question = user_answer.question
                 chosen_answer = user_answer.chosen_answer
-                try:
-                    correct_answer = Answer.objects.get(question=question, is_correct=True)
-                except Answer.DoesNotExist:
-                    return Response({'error': 'Answer not found'}, status=status.HTTP_404_NOT_FOUND)
+                correct_answers = question.answers.filter(is_correct=True).prefetch_related(None)
 
-                if chosen_answer == correct_answer:
-                    total_score += 1  
-
-            #quiz_result_data = {
-            #    'quiz': quiz.id,
-            #    'user': request.user.id,
-            #    'score': total_score,
-            #}
-
-            #quiz_result_serializer = QuizResultSerializer(data=quiz_result_data)
+                if correct_answers.filter(id=chosen_answer.id).exists():
+                    total_score += 1
 
             quiz_result = QuizResult(quiz=quiz, user=request.user, score=total_score)
             quiz_result.save()
-            #if quiz_result_serializer.is_valid():
-            #    quiz_result_serializer.save()
-            #   return Response({'message': 'Answers submitted successfully'}, status=status.HTTP_201_CREATED)
-            #else:
-            #     return Response(quiz_result_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+            return Response({'message': 'Answers submitted successfully'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def get_current_quiz_attempt(self, request, quiz):
-        user = request.user  
-        try:
-            current_attempt = QuizAttempt.objects.get(user=user, quiz=quiz)
-            return current_attempt
-        except QuizAttempt.DoesNotExist:
-            new_attempt = QuizAttempt(user=user, quiz=quiz)
-            new_attempt.save()
-            return new_attempt
 
     @action(detail=True, methods=['get'], url_path='user-score')
     def get_user_score(self, request, pk=None):
         quiz = self.get_object()
+        quiz_results_prefetch = Prefetch(
+            'quizresult_set',
+            queryset=QuizResult.objects.filter(user=request.user),
+            to_attr='user_quiz_results'
+        )
+
+        quiz_with_user_results = Quiz.objects.filter(id=quiz.id).prefetch_related(quiz_results_prefetch).get()
 
         try:
-            quiz_result = QuizResult.objects.get(quiz=quiz, user=request.user)
-
-            # Serialize the quiz_result using QuizResultSerializer
+            quiz_result = quiz_with_user_results.user_quiz_results[0]
             quiz_result_data = QuizResultSerializer(quiz_result).data
-
-            # Serialize the quiz object using QuizSerializer
             quiz_data = QuizSerializer(quiz).data
 
             response_data = {
-                'quiz_title': quiz_data['title'],  # Assuming 'title' is the field to retrieve from the quiz
+                'quiz_title': quiz_data['title'],  
                 'user_score': quiz_result_data['score'],
             }
 
@@ -180,6 +160,10 @@ class QuizViewSet(ModelViewSet):
     @action(detail=True, methods=['get'])
     def list_quiz_results(self, request, pk=None):
         quiz = self.get_object()
-        quiz_results = QuizResult.objects.filter(quiz=quiz)
+        quiz_results = QuizResult.objects.prefetch_related('quiz').filter(quiz=quiz)
         serializer = QuizResultSerializer(quiz_results, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    
+
+   

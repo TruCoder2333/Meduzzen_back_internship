@@ -39,8 +39,15 @@ class QuizAttempt(models.Model):
 class QuizResult(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, default=None)
     timestamp = models.DateTimeField(auto_now_add=True)
     score = models.FloatField()
+
+    def save(self, *args, **kwargs):
+        if not self.company_id and self.quiz:
+            self.company = self.quiz.company
+
+        super(QuizResult, self).save(*args, **kwargs)
 
 class UserAnswer(models.Model):
     quiz_attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE)

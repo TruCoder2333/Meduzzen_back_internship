@@ -30,9 +30,14 @@ class QuizAttemptSerializer(serializers.ModelSerializer):
 class QuizResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuizResult
-        fields = ('id', 'user', 'quiz', 'timestamp', 'score')
+        fields = ('id', 'user', 'quiz', 'timestamp', 'company', 'score')
 
 class UserAnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserAnswer
         fields = ('id', 'quiz_attempt', 'question', 'chosen_answer')
+
+    quiz_attempt = serializers.PrimaryKeyRelatedField(
+        queryset=QuizAttempt.objects.all(),
+        required=False  # Set the field as not required
+    )

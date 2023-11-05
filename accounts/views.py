@@ -17,6 +17,8 @@ from accounts.utils import log_to_logger
 from companies.models import Company
 from invitations.models import CompanyInvitation, InvitationStatus
 from invitations.serializers import AcceptInvitationSerializer, LeaveCompanySerializer, SendRequestSerializer
+from quizzes.models import UserAnswer
+from quizzes.serializers import QuizResultSerializer
 
 
 class UserPagination(PageNumberPagination):
@@ -120,11 +122,9 @@ class UserViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
             return Response({'error': 'Invalid reset link.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if the reset token is valid
         if not default_token_generator.check_token(user, token):
             return Response({'error': 'Invalid reset token.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Set the new password
         user.set_password(password)
         user.save()
 
@@ -260,5 +260,34 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({'message': 'Avatar uploaded successfully'}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get'], url_path='average-score-all-companies')
+    def get_user_average_score_all_companies(self, request, pk=None):
+        user = self.get_object()  
+
+        user_quiz_results = CustomUser.objects.prefetch_related(
+            'quizresult_set__quiz',  
+        ).get(id=user.id).quizresult_set.all()
+
+        
+        total_correct_answers = 0
+
+        for quiz_result in user_quiz_results:
+            total_correct_answers += quiz_result.score 
+
+        total_answers = UserAnswer.objects.filter(
+            quiz_attempt__user=user,
+        ).count()
+        average_score = total_correct_answers / total_answers if total_answers > 0 else 0
+
+        quiz_results_serializer = QuizResultSerializer(user_quiz_results, many=True)
+
+        response_data = {
+            'user_id': user.id,
+            'average_score_all_companies': average_score,
+            'quiz_results': quiz_results_serializer.data,  
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
     
     
