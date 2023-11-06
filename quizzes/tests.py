@@ -200,7 +200,6 @@ class QuizAPITestCase(APITestCase):
         }
         self.client.post(url, data, format='json')
         question1 = self.quiz.questions.first()
-        print(self.quiz.questions.first())
         url = f'/quizzes/{self.quiz.id}/create_answer/'  
         data = {
             "text": "Correct answer",
@@ -225,7 +224,6 @@ class QuizAPITestCase(APITestCase):
         }
         self.client.post(url, data, format='json')
         question2 = self.quiz.questions.last()
-        print(self.quiz.questions.last())
         url = f'/quizzes/{self.quiz.id}/create_answer/'  
         data = {
             "text": "Correct answer",

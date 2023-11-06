@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 from pathlib import Path
+import redis
 
 from dotenv import load_dotenv
 
@@ -31,8 +32,6 @@ DEBUG =  os.getenv('DEBUG') == 'True'
 
 ALLOWED_HOSTS = []
 
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -111,12 +110,18 @@ DATABASES = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://redis:6379/1",  # This will be the Docker Compose service name for Redis
+        "LOCATION": "redis://redis:6379/1",  
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
 }
+
+REDIS_HOST = os.environ.get('REDIS_HOST', os.getenv('REDIS_IP'))
+REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
+
+REDIS_CONNECTION = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 # Password validation
