@@ -14,7 +14,7 @@ from .serializers import (
     QuizSerializer,
     UserAnswerSerializer,
 )
-from .utils import get_current_quiz_attempt, save_user_answer_to_redis, get_user_answer_from_redis
+from .utils import get_current_quiz_attempt, save_user_answer_to_redis
 
 
 class QuizPagination(PageNumberPagination):

@@ -1,6 +1,9 @@
-from .models import QuizAttempt
-from django.conf import settings
 import json
+
+from django.conf import settings
+
+from .models import QuizAttempt
+
 
 def get_current_quiz_attempt(user, quiz):
         try:
