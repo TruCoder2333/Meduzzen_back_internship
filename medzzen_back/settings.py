@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 import os
+import socket
 from pathlib import Path
 
 import redis
@@ -117,7 +118,7 @@ CACHES = {
     }
 }
 
-REDIS_HOST = os.environ.get('REDIS_HOST', os.getenv('REDIS_IP'))
+REDIS_HOST = os.environ.get('REDIS_HOST', socket.gethostbyname('redis'))
 REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
 
 REDIS_CONNECTION = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
