@@ -14,7 +14,7 @@ from .serializers import (
     QuizSerializer,
     UserAnswerSerializer,
 )
-from .utils import get_current_quiz_attempt
+from .utils import get_current_quiz_attempt, save_user_answer_to_redis
 
 
 class QuizPagination(PageNumberPagination):
@@ -125,6 +125,15 @@ class QuizViewSet(ModelViewSet):
 
                 if correct_answers.filter(id=chosen_answer.id).exists():
                     total_score += 1
+
+                save_user_answer_to_redis(
+                    user_id=request.user.id,
+                    quiz_id=quiz.id,
+                    question_id=question.id,
+                    answer=chosen_answer.id,
+                    is_correct=True,  
+                    company_id= quiz.company.id 
+                )
 
             quiz_result = QuizResult(quiz=quiz, user=request.user, score=total_score)
             quiz_result.save()
