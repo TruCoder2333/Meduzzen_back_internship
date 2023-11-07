@@ -1,3 +1,7 @@
+import csv
+
+from django.db.models import Prefetch
+from django.http import HttpResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -14,7 +18,7 @@ from companies.serializers import (
 )
 from invitations.models import CompanyInvitation, InvitationStatus
 from invitations.serializers import AcceptRequestSerializer, RemoveMemberSerializer, SendInvitationSerializer
-from quizzes.models import Quiz, UserAnswer
+from quizzes.models import Quiz, QuizResult, UserAnswer
 from quizzes.serializers import QuizResultSerializer, QuizSerializer
 
 
@@ -287,3 +291,92 @@ class CompanyViewSet(viewsets.ModelViewSet):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path='get-results')
+    def get_company_results(self, request, pk=None):
+        user = request.user
+
+        company = self.get_object()
+
+        if not company.is_owner_or_administrator(user):
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        prefetch_query = Prefetch('quiz', queryset=Quiz.objects.select_related('company'))
+        quiz_results = QuizResult.objects.filter(quiz__company=company).prefetch_related(prefetch_query, 'user')
+
+        serializer = QuizResultSerializer(quiz_results, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path='member-results')
+    def get_member_results(self, request, pk=None):
+        try:
+            company = self.get_object()
+            if not company.is_owner_or_administrator(request.user):
+                return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+            user_id = request.GET.get('user_id') 
+
+            quiz_results = QuizResult.objects.filter(
+                quiz__company=company,
+                user__id=user_id
+            ).prefetch_related(
+                Prefetch('user', queryset=CustomUser.objects.only('id', 'username')),
+                Prefetch('quiz', queryset=Quiz.objects.only('id', 'title'))
+            )
+
+            serializer = QuizResultSerializer(quiz_results, many=True)
+
+            return Response(serializer.data)
+        except Company.DoesNotExist:
+            return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['get'], url_path='member-results/export-csv')
+    def export_member_results_to_csv(self, request, pk=None):
+        company = self.get_object()
+        if not company.is_owner_or_administrator(request.user):
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        user_id = request.GET.get('user_id')  
+
+        quiz_results = QuizResult.objects.filter(
+                quiz__company=company,
+                user__id=user_id
+            ).prefetch_related(
+                Prefetch('user', queryset=CustomUser.objects.only('id', 'username')),
+                Prefetch('quiz', queryset=Quiz.objects.only('id', 'title'))
+            )
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="member_results.csv"'
+
+        writer = csv.writer(response)
+        for result in quiz_results:
+            writer.writerow([
+                    result.id,
+                    result.user.username, 
+                    result.quiz.title, 
+                    result.score, 
+                    result.company, 
+                    result.timestamp
+                    ])
+            
+        return response
+
+    @action(detail=True, methods=['get'], url_path='member-results/export-json')
+    def export_member_results_to_json(self, request, pk=None):
+        company = self.get_object()
+        if not company.is_owner_or_administrator(request.user):
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        user_id = request.GET.get('user_id')  
+
+        quiz_results = QuizResult.objects.filter(
+                quiz__company=company,
+                user__id=user_id
+            ).prefetch_related(
+                Prefetch('user', queryset=CustomUser.objects.only('id', 'username')),
+                Prefetch('quiz', queryset=Quiz.objects.only('id', 'title'))
+            )
+        serializer = QuizResultSerializer(quiz_results, many=True)
+
+        return Response(serializer.data)

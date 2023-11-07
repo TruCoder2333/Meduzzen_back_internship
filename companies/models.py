@@ -29,6 +29,9 @@ class Company(TimeStampedModel):
         super().save(*args, **kwargs)
         self.administrators.add(self.owner)  # Add the owner as an administrator when the company is saved
 
+    def is_owner_or_administrator(self, user):
+        return self.owner == user or user in self.administrators.all()
+
     class Meta:
         verbose_name_plural = "Companies"
 
