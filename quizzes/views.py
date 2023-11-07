@@ -1,9 +1,15 @@
+import csv
+import json
+
 from django.db.models import Prefetch
+from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+
+from accounts.models import CustomUser
 
 from .models import Answer, Question, Quiz, QuizResult
 from .serializers import (
@@ -172,6 +178,51 @@ class QuizViewSet(ModelViewSet):
         quiz_results = QuizResult.objects.prefetch_related('quiz').filter(quiz=quiz)
         serializer = QuizResultSerializer(quiz_results, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    
+    @action(detail=False, methods=['get'], url_path='export/csv', url_name='export-csv')
+    def export_results_to_csv(self, request):
+        quiz_results = QuizResult.objects.filter(user=request.user).prefetch_related(
+            Prefetch('user', queryset=CustomUser.objects.only('id', 'username')),
+            Prefetch('quiz', queryset=Quiz.objects.only('id', 'title')),
+        )
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="quiz_results.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(["Id", "User", "Quiz", "Score", "Company", "Date Passed"])
+
+        for result in quiz_results:
+            writer.writerow([
+                result.id,
+                result.user.username, 
+                result.quiz.title, 
+                result.score, 
+                result.company, 
+                result.timestamp
+                ])
+
+        return response
+
+    @action(detail=False, methods=['get'], url_path='export/json', url_name='export-json')
+    def export_results_to_json(self, request):
+        quiz_results = QuizResult.objects.filter(user=request.user).prefetch_related(
+            Prefetch('user', queryset=CustomUser.objects.only('id', 'username')),
+            Prefetch('quiz', queryset=Quiz.objects.only('id', 'title')),
+            )
+
+        data = [
+            {
+                "user": result.user.username,
+                "company": result.company,
+                "quiz": result.quiz.title,
+                "score": result.score,
+                "date_passed": result.timestamp
+            }
+            for result in quiz_results
+        ]
+
+        return HttpResponse(json.dumps(data), content_type="application/json")
 
     
 
