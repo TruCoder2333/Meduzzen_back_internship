@@ -1,7 +1,8 @@
 import csv
 import json
 
-from django.db.models import Prefetch
+from django.db.models import Case, Count, FloatField, Prefetch, Sum, Value, When
+from django.db.models.functions import TruncDate
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.decorators import action
@@ -20,7 +21,7 @@ from .serializers import (
     QuizSerializer,
     UserAnswerSerializer,
 )
-from .utils import get_current_quiz_attempt, save_user_answer_to_redis
+from .utils import save_user_answer_to_redis
 
 
 class QuizPagination(PageNumberPagination):
@@ -121,27 +122,39 @@ class QuizViewSet(ModelViewSet):
 
         serializer = UserAnswerSerializer(data=request.data, many=True)
         if serializer.is_valid():
-            user_answers = serializer.save(quiz_attempt=get_current_quiz_attempt(request.user, quiz))
+            user_answers = serializer.save()
             total_score = 0
 
             for user_answer in user_answers:
                 question = user_answer.question
                 chosen_answer = user_answer.chosen_answer
                 correct_answers = question.answers.filter(is_correct=True).prefetch_related(None)
-
                 if correct_answers.filter(id=chosen_answer.id).exists():
                     total_score += 1
 
-                save_user_answer_to_redis(
-                    user_id=request.user.id,
-                    quiz_id=quiz.id,
-                    question_id=question.id,
-                    answer=chosen_answer.id,
-                    is_correct=True,  
-                    company_id= quiz.company.id 
+                    save_user_answer_to_redis(
+                        user_id=request.user.id,
+                        quiz_id=quiz.id,
+                        question_id=question.id,
+                        answer=chosen_answer.id,
+                        is_correct=True,  
+                        company_id= quiz.company.id,
+                    )
+                else:
+                    save_user_answer_to_redis(
+                        user_id=request.user.id,
+                        quiz_id=quiz.id,
+                        question_id=question.id,
+                        answer=chosen_answer.id,
+                        is_correct=False,  
+                        company_id= quiz.company.id,
+                    )
+            quiz_result = QuizResult(
+                quiz=quiz, 
+                user=request.user, 
+                score=total_score, 
+                quiz_attempt=user_answer.quiz_attempt
                 )
-
-            quiz_result = QuizResult(quiz=quiz, user=request.user, score=total_score)
             quiz_result.save()
             return Response({'message': 'Answers submitted successfully'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -224,6 +237,53 @@ class QuizViewSet(ModelViewSet):
 
         return HttpResponse(json.dumps(data), content_type="application/json")
 
+
+    @action(detail=True, methods=['get'], url_path='average-scores-over-time')
+    def get_average_scores_over_time(self, request, pk=None):
+        quiz = self.get_object()
+        user = request.user
+
+        quiz_results = (
+            QuizResult.objects
+            .filter(quiz=quiz, user=user)
+            .annotate(
+                date=TruncDate('timestamp')
+            )
+            .values('date')
+            .annotate(
+                total_correct_answers=Sum(
+                    Case(
+                        When(
+                            quiz_attempt__useranswer__chosen_answer__in=Answer.objects.filter(is_correct=True),
+                            then=Value(1.0),
+                        ),
+                        default=Value(0.0),
+                        output_field=FloatField()
+                    )
+                    ),
+                total_answers=Count(
+                    'quiz_attempt__useranswer'
+                ),
+            )
+            .order_by('date')
+        )
+        results_data = []
+        cumulative_total_correct = 0
+        cumulative_total_answers = 0
+
+        for result in quiz_results:
+            cumulative_total_correct += result['total_correct_answers']
+            cumulative_total_answers += result['total_answers']
+            average_score = cumulative_total_correct / cumulative_total_answers if cumulative_total_answers > 0 else 0
+
+            results_data.append({
+                'date': result['date'],
+                'average_score': average_score,
+            })
+
+       
+
+        return Response(results_data)
     
 
    

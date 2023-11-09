@@ -1,5 +1,7 @@
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.db.models import Case, Count, FloatField, Sum, Value, When
+from django.db.models.functions import TruncDate
 from django.urls import reverse
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -17,7 +19,7 @@ from accounts.utils import log_to_logger
 from companies.models import Company
 from invitations.models import CompanyInvitation, InvitationStatus
 from invitations.serializers import AcceptInvitationSerializer, LeaveCompanySerializer, SendRequestSerializer
-from quizzes.models import UserAnswer
+from quizzes.models import Answer, QuizResult, UserAnswer
 from quizzes.serializers import QuizResultSerializer
 
 
@@ -290,4 +292,109 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response(response_data, status=status.HTTP_200_OK)
     
-    
+    @action(detail=True, methods=['get'], url_path='average-scores-over-time')
+    def get_average_scores_over_time(self, request, pk=None):
+        user = self.get_object()
+        cumulative_results = []
+
+        quiz_results = (
+            QuizResult.objects
+            .filter(user=user, quiz_attempt__user=user,)
+            .annotate(
+                date=TruncDate('timestamp')
+            )
+            .values('date')
+            .annotate(
+               total_correct_answers=Sum(
+                    Case(
+                        When(
+                            quiz_attempt__useranswer__chosen_answer__in=Answer.objects.filter(is_correct=True),
+                            then=Value(1.0),
+                        ),
+                        default=Value(0.0),
+                        output_field=FloatField()
+                    )
+                    ),
+                total_answers=Count(
+                    'quiz_attempt__useranswer'
+                ),
+            )
+            .order_by('date')
+        )
+
+        cumulative_total_correct = 0.0
+        cumulative_total_answers = 0.0
+        quiz_results_data = []
+
+        for result in quiz_results:
+            cumulative_total_correct += result['total_correct_answers']
+            cumulative_total_answers += result['total_answers']
+            average_score = cumulative_total_correct / cumulative_total_answers if cumulative_total_answers > 0.0 else 0
+
+            quiz_results_data.append({
+                'date': result['date'],
+                'average_score': average_score,
+            })
+
+        cumulative_results.append({
+            'user': user.username,  
+            'results_data': quiz_results_data,
+        })
+
+        return Response(cumulative_results)
+
+    @action(detail=False, methods=['get'], url_path='all-average-scores-over-time')
+    def get_all_average_scores_over_time(self, request):
+        cumulative_results = []
+
+        users = CustomUser.objects.all()
+
+        for user in users:
+            quiz_results = (
+                QuizResult.objects
+                .filter(user=user)
+                .annotate(
+                    date=TruncDate('timestamp')
+                )
+                .values('date')
+                .annotate(
+                    total_correct_answers=Sum(
+                    Case(
+                        When(
+                            quiz_attempt__user=user,
+                            quiz_attempt__useranswer__chosen_answer__in=Answer.objects.filter(is_correct=True),
+                            then=Value(1.0),
+                        ),
+                        default=Value(0.0),
+                        output_field=FloatField()
+                    )
+                    ),
+                    total_answers=Count(
+                    'quiz_attempt__useranswer'
+                ),
+                )
+                .order_by('date')
+            )
+
+            cumulative_total_correct = 0.0
+            cumulative_total_answers = 0.0
+            quiz_results_data = []
+            for result in quiz_results:
+                cumulative_total_correct += result['total_correct_answers']
+                cumulative_total_answers += result['total_answers']
+                if cumulative_total_answers > 0.0:
+                    average_score = cumulative_total_correct / cumulative_total_answers  
+                else: 
+                    average_score = 0.0
+
+                quiz_results_data.append({
+                    'date': result['date'],
+                    'average_score': average_score,
+                })
+
+            cumulative_results.append({
+                'user': user.username,  # Include user's username or any identifying field
+                'results_data': quiz_results_data,
+            })
+
+        return Response(cumulative_results)
