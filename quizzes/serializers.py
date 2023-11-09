@@ -30,7 +30,7 @@ class QuizAttemptSerializer(serializers.ModelSerializer):
 class QuizResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuizResult
-        fields = ('id', 'user', 'quiz', 'timestamp', 'company', 'score')
+        fields = ('id', 'user', 'quiz', 'timestamp', 'company', 'score', 'quiz_attempt')
 
 class UserAnswerSerializer(serializers.ModelSerializer):
     class Meta:

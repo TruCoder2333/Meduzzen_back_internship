@@ -380,3 +380,42 @@ class CompanyViewSet(viewsets.ModelViewSet):
         serializer = QuizResultSerializer(quiz_results, many=True)
 
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='recent-quiz-completions')
+    def get_recent_quiz_completions(self, request, pk=None):
+        company = self.get_object()
+        if not company.is_owner_or_administrator(request.user):
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        quizzes = Quiz.objects.prefetch_related('company').filter(company=company)
+        quiz_data = []
+
+        for quiz in quizzes:
+            if QuizResult.objects.filter(quiz=quiz).exists():
+                last_completion_time = QuizResult.objects.filter(quiz=quiz).latest('timestamp').timestamp  
+            else: 
+                last_completion_time = None
+            quiz_data.append({
+                'quiz_title': quiz.title,
+                'last_completion_time': last_completion_time,
+            })
+
+        return Response(quiz_data)
+
+    @action(detail=True, methods=['get'], url_path='users-last-test-time')
+    def get_users_last_test_time(self, request, pk=None):
+        company = self.get_object()
+        company_users = company.members.all()
+        users_last_test_time = []
+
+        for user in company_users:
+            last_test_time = QuizResult.objects.prefetch_related(
+                'company', 
+                'user').filter(user=user, company=company).order_by('-timestamp').first()
+            users_last_test_time.append({
+                'user_id': user.id,
+                'username': user.username,
+                'last_test_time': last_test_time.timestamp if last_test_time else None,
+            })
+
+        return Response(users_last_test_time)

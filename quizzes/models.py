@@ -42,6 +42,7 @@ class QuizResult(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, default=None)
     timestamp = models.DateTimeField(auto_now_add=True)
     score = models.FloatField()
+    quiz_attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
         if not self.company_id and self.quiz:
