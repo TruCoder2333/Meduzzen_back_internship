@@ -51,7 +51,11 @@ INSTALLED_APPS = [
     'corsheaders',
     'invitations',
     'quizzes',
+    'channels',
+    'notifications',
 ]
+
+ASGI_APPLICATION = 'medzzen_back.routing.application'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -123,6 +127,11 @@ REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
 
 REDIS_CONNECTION = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',  # Use Redis or other channel layers in production.
+    },
+}
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 # Password validation
