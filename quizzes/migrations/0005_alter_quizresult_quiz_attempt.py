@@ -7,7 +7,10 @@ def repopulate_quiz_results(apps, schema_editor):
     QuizResult = apps.get_model('quizzes', 'QuizResult')
     QuizAttempt = apps.get_model('quizzes', 'QuizAttempt')
 
-    quiz_attempts = QuizAttempt.objects.all()
+    quiz_attempts = QuizAttempt.objects.prefetch_related(
+        'quiz',
+        'user',
+        ).all()
 
     for quiz_attempt in quiz_attempts:
         QuizResult.objects.filter(quiz=quiz_attempt.quiz, user=quiz_attempt.user).update(quiz_attempt_id=quiz_attempt.id)
