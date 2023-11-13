@@ -1,4 +1,3 @@
-import json
 
 from django.db import models
 from django.db.models.signals import post_save
@@ -7,7 +6,7 @@ from django.dispatch import receiver
 from accounts.models import CustomUser
 from companies.models import Company
 from core.models import TimeStampedModel
-from notifications.models import Notification, NotificationStatus
+from notifications.utils import send_notification_to_user
 
 
 class Quiz(TimeStampedModel):
@@ -70,22 +69,7 @@ class UserAnswer(models.Model):
 
 @receiver(post_save, sender=Quiz)
 def create_quiz_notifications(sender, instance, **kwargs):
-    from asgiref.sync import async_to_sync
-    from channels.layers import get_channel_layer
-
-    channel_layer = get_channel_layer()
-
-    # Get all users in the company
     company_users = instance.company.members.all()
 
-    # Create notifications for each user
     for user in company_users:
-        Notification.objects.create(
-            user=user,
-            status=NotificationStatus.UNREAD.value,
-            text=f'New quiz "{instance.title}" is available. Take it now!',
-        )
-
-        message = json.dumps({'type': 'notification', 'message': 'New quiz available!'})
-        async_to_sync(channel_layer.group_add)(f'user_{user.id}', f'notification_group_{user.id}')
-        async_to_sync(channel_layer.group_send)(f'user_{user.id}', {'type': 'send_notification', 'message': message})
+        send_notification_to_user(user, instance, message_type='notification')

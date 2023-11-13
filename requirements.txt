@@ -11,3 +11,6 @@ Pillow==10.1.0
 django-storages==1.14.2
 channels==4.0.0
 uvicorn==0.24.0.post1
+celery==5.3.4
+django-celery-beat==2.5.0
+flower==2.0.1
