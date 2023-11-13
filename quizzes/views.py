@@ -37,6 +37,7 @@ class QuizViewSet(ModelViewSet):
     def perform_create(self, serializer):
         if serializer.is_valid:
             quiz = serializer.save()
+            
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -55,6 +56,9 @@ class QuizViewSet(ModelViewSet):
                 is_correct=answer_data['is_correct']) 
                 for answer_data in answers_data]
             Answer.objects.bulk_create(answers)
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
     def update(self, request, pk=None):
         quiz = self.get_object()

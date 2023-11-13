@@ -19,6 +19,8 @@ from accounts.utils import log_to_logger
 from companies.models import Company
 from invitations.models import CompanyInvitation, InvitationStatus
 from invitations.serializers import AcceptInvitationSerializer, LeaveCompanySerializer, SendRequestSerializer
+from notifications.models import Notification
+from notifications.serializers import NotificationSerializer
 from quizzes.models import Answer, QuizResult, UserAnswer
 from quizzes.serializers import QuizResultSerializer
 
@@ -398,3 +400,12 @@ class UserViewSet(viewsets.ModelViewSet):
             })
 
         return Response(cumulative_results)
+
+    @action(detail=True, methods=['get'])
+    def get_notifications(self, request, pk=None):
+        user = self.get_object()
+        notifications = Notification.objects.prefetch_related('user').filter(user=user)
+        serializer = NotificationSerializer(notifications, many=True)
+        for notification in notifications:
+            notification.mark_as_read()
+        return Response(serializer.data, status=status.HTTP_200_OK)
