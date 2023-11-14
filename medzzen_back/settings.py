@@ -12,12 +12,12 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 import socket
+from datetime import timedelta
 from pathlib import Path
 
 import redis
 from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -53,16 +53,16 @@ INSTALLED_APPS = [
     'quizzes',
     'channels',
     'notifications',
+    'django_celery_beat'
 ]
 
-ASGI_APPLICATION = 'medzzen_back.routing.application'
+ASGI_APPLICATION = 'medzzen_back.asgi.application'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        #'rest_framework.permissions.IsAuthenticated',
     ],
 }
 
@@ -125,7 +125,11 @@ CACHES = {
 REDIS_HOST = os.environ.get('REDIS_HOST', socket.gethostbyname('redis'))
 REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
 
-REDIS_CONNECTION = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+REDIS_CONNECTION = redis.StrictRedis(
+    host=REDIS_HOST, 
+    port=REDIS_PORT, 
+    decode_responses=True
+    )
 
 CHANNEL_LAYERS = {
     'default': {
@@ -198,3 +202,17 @@ EMAIL_HOST = os.getenv('EMAIL_HOST')
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD= os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_PORT = os.getenv('EMAIL_PORT')
+
+CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'  # Use 'redis' consistently
+CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+CELERY_BEAT_SCHEDULE = {
+    'check-last-test-dates': {
+        'task': 'quizzes.tasks.check_last_test_dates',
+        'schedule': timedelta(hours=24),
+    },
+}
