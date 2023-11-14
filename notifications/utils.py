@@ -11,7 +11,7 @@ def send_notification_to_user(user, quiz, message_type='notification'):
     Notification.objects.create(
         user=user,
         status=NotificationStatus.UNREAD.value,
-        text=f'New quiz "{quiz.title}" is available. Take it now!',
+        text=f'An undone quiz "{quiz.title}" is available. Take it now!',
     )
     message = json.dumps({'type': message_type, 'message': f'New quiz "{quiz.title}" is available. Take it now!'})
     async_to_sync(channel_layer.group_add)(f'user_{user.id}', f'notification_group_{user.id}')

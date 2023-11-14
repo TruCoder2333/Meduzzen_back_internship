@@ -29,8 +29,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
     serializer_class = CompanySerializer
     queryset = Company.objects.prefetch_related('owner').all()
     pagination_class = CompanyPagination
-    #authentication_classes = [TokenAuthentication]  # Use TokenAuthentication
-    #permission_classes = [IsAuthenticated] 
+    
     
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
